@@ -168,6 +168,37 @@ class TestRetryBlock < Test::Unit::TestCase
     assert_equal 100, @run_count
     assert_equal 99, @fail_count
   end
+
+  def test_attempts_passed_to_fail_callback
+    test_counter = 0
+    test_callback = lambda do |attempt, exception|
+      test_counter += 1
+      assert_equal test_counter, attempt
+    end
+    retry_block(:attempts => 3, :fail_callback => test_callback) do
+      @run_count += 1
+      raise TestException unless @run_count == 3
+    end
+    assert_equal 3, @run_count
+  end
+
+  def test_attempts_passed_to_block
+    retry_block(:attempts => 3) do |attempts|
+      @run_count += 1
+      assert_equal @run_count, attempts
+      raise TestException unless @run_count == 3
+    end
+    assert_equal 3, @run_count
+  end
+
+  def test_attempts_incremented_when_run_forever
+    retry_block() do |attempts|
+      @run_count += 1
+      assert_equal @run_count, attempts
+      raise TestException unless @run_count == 10
+    end
+    assert_equal 10, @run_count
+  end
 end
 
 class TestException < Exception
