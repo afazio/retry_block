@@ -3,7 +3,7 @@ require "retry_block/version"
 module Kernel
   def retry_block (opts={}, &block)
     opts = {
-      :attempts => 1,          # Number of times to try block. Nil means to retry forever until success
+      :attempts => nil,        # Number of times to try block. Nil means to retry forever until success
       :sleep => 0,             # Seconds to sleep between attempts
       :catch => Exception,     # An exception or array of exceptions to listen for
       :fail_callback => nil    # Proc/lambda that gets executed between attempts
