@@ -1,0 +1,183 @@
+== README: retry_block
+
+<i>Take control of unstable or indeterminate code with retry_block.</i>
+
+The retry_block method allows you to easily retry a block of code a given
+number of times or until successful.  You may specify a failure callback to
+be called each time the block of code fails.
+
+=== A Quick Example
+
+Sometimes examples are more useful than words:
+
+  require 'retry_block'
+  
+  fail_callback = lambda do |attempt, exception|
+    puts "attempt ##{attempt} failed.  Sleeping 1 second"
+  end
+ 
+  retry_block(:fail_callback => fail_callback, :sleep => 1) do |attempt|
+    raise "Never see this exception" if attempt <= 5
+    puts "Success!"
+  end
+
+In the above code, an exception is raised for the first 5 tries of the
+block of code given to retry_block.  Upon each failure the fail_callback
+lambda is called, printing out a message warning the user that the block
+failed.  Also upon each failure retry_block sleeps for one second.  On the
+last attempt the block succeeds and exits.  Here is the output from running
+the above code:
+
+  attempt #1 failed.  Sleeping 1 second
+  attempt #2 failed.  Sleeping 1 second
+  attempt #3 failed.  Sleeping 1 second
+  attempt #4 failed.  Sleeping 1 second
+  attempt #5 failed.  Sleeping 1 second
+  Success!
+
+=== Maximum Attempts
+
+Notice that by default retry_block will retry a block of code until it
+succeed.  If you want to apply a maximum amount of times to retry, pass
+that number to the <tt>:attempts</tt> option.  Here is an example where a
+block of code is run 3 times and finally fails:
+
+  require 'retry_block'
+  
+  retry_block(:attempts => 3) do
+    puts "trying"
+    raise RuntimeError, "I Failed!"
+  end
+
+Here is the output of the above code:
+
+  trying
+  trying
+  trying
+  I Failed! (RuntimeError)
+
+Notice that if the block of code fails the maximum number of times,
+retry_block will raise the exception to the calling code.
+
+=== Catching Specific Exceptions
+
+It is possible to tell retry_block which exceptions to catch.  Pass either
+an exception or a list of exceptions to the <tt>:catch</tt> option.  By
+default retry_block watches for <tt>Exception</tt>.  If the block of code
+raises an exception that is not watched by retry_block, the exception will
+be raised to the calling code.  Note that the :fail_callback callback will
+NOT be called when an unexpected exception occurs.  Here is an example to
+demonstrate:
+
+  require 'retry_block'
+
+  class UnexpectedError < Exception; end
+  
+  # Run forever until success or an unexpected exception occurs.
+  retry_block(:catch => [RuntimeError, ArgumentError]) do |attempts|
+    puts "retrying"
+    raise UnexpectedError if attempts == 10
+    raise RuntimeError if (attempts % 2) == 0
+    raise ArgumentError if (attempts % 2) == 1
+  end
+
+The output of the above code is:
+
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  retrying
+  UnexpectedError (UnexpectedError)
+
+Notice that in the code above, retry_block gracefully handles RuntimeError
+and ArgumentError because these have been passed to the <tt>:catch</tt>
+option.  But when <tt>UnexpectedError</tt> occurs, the exception is raised
+to the calling code.
+
+=== Sleeping Between Attempts
+
+Finally, retry_block has a <tt>:sleep</tt> option.  Use this when you
+require that there is a pause between retries of the block of code.  This
+is often handy, for instance, when relying on external events (network IO,
+user IO, etc.)
+
+  require 'retry_block'
+  
+  callback = lambda do puts "sleeping 1 second" end
+  
+  retry_block(:attempts => 3, :sleep => 1, :fail_callback => callback) do |attempts|
+    raise unless attempts == 3
+    puts "finished"
+  end
+
+The output of the above code is:
+
+  sleeping 1 second
+  sleeping 1 second
+  finished
+
+In the above code, we see that we ask retry_block to retry a total of 3
+times.  The first two tries fail, resulting in sleeping 1 second each.  The
+last attempt is successful.
+
+=== Block Failure Callback
+
+It is possible to provide a callback Proc or lambda to the
+<tt>:fail_callback</tt> option.  Anytime that an exception occurs in your
+code that is handled by the <tt>:catch</tt> option (which is all exceptions
+by default), the callback provided will be called.  Your callback can
+optionally be called with the current attempt number and the exception
+caught.  Here is an example:
+
+  require 'retry_block'
+  
+  callback = lambda do |attempt, exception|
+    puts "Failure ##{attempt} with message: #{exception.message}"
+  end
+ 
+  retry_block(:fail_callback => callback) do |attempt|
+    raise "Foo" if attempt == 1
+    raise "Bar" if attempt == 2
+    raise "Baz" if attempt == 3
+    puts "Finished"
+  end
+
+The output of the above code is:
+
+  Failure #1 with message: Foo
+  Failure #1 with message: Bar
+  Failure #1 with message: Baz
+  Finished
+
+This can be useful if, for instance, you would like to sleep for
+exponentially longer periods of time after each attempt:
+
+  require 'retry_block'
+ 
+  callback = lambda do |attempt|
+    # Sleep longer and longer, maxing out at 16
+    sleep_time = [16, 2**(attempt-1)].min
+    puts "Failed again!  Sleeping #{sleep_time} seconds ..."
+    sleep sleep_time
+  end
+
+  retry_block(:fail_callback => callback) do |attempt|
+    raise if attempt <= 6
+    puts "Finished"
+  end
+
+The output of the above code is:
+
+  Failed again!  Sleeping 1 seconds ...
+  Failed again!  Sleeping 2 seconds ...
+  Failed again!  Sleeping 4 seconds ...
+  Failed again!  Sleeping 8 seconds ...
+  Failed again!  Sleeping 16 seconds ...
+  Failed again!  Sleeping 16 seconds ...
+  Finished
