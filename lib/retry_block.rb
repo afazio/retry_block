@@ -26,8 +26,10 @@ module Kernel
         opts[:fail_callback].call *callback_opts
       end
       
+      attempts += 1
+
       # If we've maxed out our attempts, raise the exception to the calling code
-      raise if (not opts[:attempts].nil?) and (attempts += 1) > opts[:attempts]
+      raise if (not opts[:attempts].nil?) and attempts > opts[:attempts]
 
       # Sleep before the next retry if the option was given
       sleep opts[:sleep] if opts[:sleep].is_a? Numeric and opts[:sleep] > 0
