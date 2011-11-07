@@ -181,3 +181,24 @@ The output of the above code is:
   Failed again!  Sleeping 16 seconds ...
   Failed again!  Sleeping 16 seconds ...
   Finished
+
+=== Do NOT Catch This!
+
+If you would like to write a catch-all, but would like to exclude certain
+exceptions, you can specify the <tt>:do_not_catch</tt> option.  The
+following block of code will keep executing until it either completes
+successfully or the <tt>Interrupt</tt> exception is raised, thus allowing a
+user to easily quit the process with Ctrl-C.
+
+  retry_block :do_not_catch => Interrupt do
+    // do something useful
+  end
+
+You may pass an exception or a list of exceptions to
+<tt>:do_not_catch</tt>.  Please note that, unlike the <tt>:catch</tt>
+option, the <tt>:do_not_catch</tt> option must pass the exact classes that
+it wishes to not catch.  Subclasses will <i>not</i> match.  For example,
+passing <tt>Exception</tt> to <tt>:catch</tt> will catch all subclasses of
+<tt>Exception</tt>.  However, passing <tt>Exception</tt> to
+<tt>:do_not_catch</tt> will ONLY match if <tt>Exception</tt> is raised, but
+not any of its subclasses.
