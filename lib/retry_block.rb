@@ -1,15 +1,15 @@
-require "retry_block/version"
-
 module Kernel
   def retry_block (opts={}, &block)
     opts = {
       :attempts => nil,        # Number of times to try block. Nil means to retry forever until success
       :sleep => 0,             # Seconds to sleep between attempts
       :catch => Exception,     # An exception or array of exceptions to listen for
+      :do_not_catch => nil,    # Do not catch the specified exception or list of exceptions.
       :fail_callback => nil    # Proc/lambda that gets executed between attempts
     }.merge(opts)
 
     opts[:catch] = [ opts[:catch] ].flatten
+    opts[:do_not_catch] = [ opts[:do_not_catch] ].flatten
     attempts = 1
 
     if (not opts[:attempts].nil?) and (not opts[:attempts].is_a? Integer or opts[:attempts] <= 0)
@@ -19,6 +19,8 @@ module Kernel
     begin
       return yield attempts
     rescue *opts[:catch] => exception
+
+      raise if opts[:do_not_catch].include? exception.class
 
       # If a callable object was given for :fail_callback then call it
       if opts[:fail_callback].respond_to? :call

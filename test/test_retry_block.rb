@@ -199,6 +199,28 @@ class TestRetryBlock < Test::Unit::TestCase
     end
     assert_equal 10, @run_count
   end
+
+  def test_do_not_catch1
+    assert_raises(Interrupt) do
+      retry_block(:do_not_catch => Interrupt, :attempts => 2, :fail_callback => @fail_callback) do |attempt|
+        @run_count += 1
+        raise Interrupt if attempt == 1
+      end
+    end
+    assert_equal 1, @run_count
+    assert_equal 0, @fail_count
+  end
+
+  def test_do_not_catch2
+    assert_raises(Interrupt) do
+      retry_block(:do_not_catch => [ArgumentError, Interrupt], :attempts => 2, :fail_callback => @fail_callback) do |attempt|
+        @run_count += 1
+        raise Interrupt if attempt == 1
+      end
+    end
+    assert_equal 1, @run_count
+    assert_equal 0, @fail_count
+  end
 end
 
 class TestException < Exception

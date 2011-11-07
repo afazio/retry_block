@@ -4,7 +4,7 @@ require "retry_block/version"
 
 Gem::Specification.new do |s|
   s.name        = "retry_block"
-  s.version     = RetryBlock::VERSION
+  s.version     = "1.2.0"
   s.authors     = ["Alfred J. Fazio"]
   s.email       = ["alfred.fazio@gmail.com"]
   s.homepage    = ""
